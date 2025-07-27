@@ -1,12 +1,18 @@
-# SproutSpace - Plant Care & Identification App
+# SproutSpace
 
-## Project Description
+## Project info
 
-SproutSpace is a comprehensive plant care and identification application that helps gardening enthusiasts nurture their green spaces. The app provides plant identification through photo scanning, personalized care recommendations, and gardening community features.
+**URL**: https://lovable.dev/projects/bda237b9-4644-4606-9345-57a9410fec95
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
+
+**Use Lovable**
+
+Simply visit the [Lovable Project](https://lovable.dev/projects/bda237b9-4644-4606-9345-57a9410fec95) and start prompting.
+
+Changes made via Lovable will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
@@ -56,12 +62,12 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Deploy your SproutSpace application using your preferred hosting platform (Vercel, Netlify, etc.).
+Simply open [Lovable](https://lovable.dev/projects/bda237b9-4644-4606-9345-57a9410fec95) and click on Share -> Publish.
 
-## Features
+## Can I connect a custom domain to my Lovable project?
 
-- Plant identification via photo scanning
-- Personalized plant care recommendations
-- Gardening community and tips
-- Plant health tracking
-- Care reminders and notifications
+Yes, you can!
+
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
