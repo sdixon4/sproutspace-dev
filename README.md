@@ -1,73 +1,42 @@
 # SproutSpace
 
-## Project info
+SproutSpace is a mobile and web-based application designed to help home gardeners diagnose plant health issues using AI-powered multispectral imaging. The system provides actionable recommendations based on uploaded plant images, supporting better plant care through science-backed guidance.
 
-**URL**: https://lovable.dev/projects/bda237b9-4644-4606-9345-57a9410fec95
+## Project Purpose
 
-## How can I edit this code?
+This repository contains the source code and assets used to develop the SproutSpace web application for ICS 314 (Summer 2025). It includes core components, styling, configuration files, and public-facing assets such as images and landing content.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- Upload plant images for diagnostic feedback
+- Personalized plant health recommendations
+- Garden profile views and scan history mockups
+- Responsive and visually clean landing pages
+- Built with Vite, React, and Tailwind CSS
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/bda237b9-4644-4606-9345-57a9410fec95) and start prompting.
+## GitHub Pages Link
 
-Changes made via Lovable will be committed automatically to this repo.
+The project is also published on GitHub Pages:  
+[https://sproutspace.github.io](https://sproutspace.github.io)
 
-**Use your preferred IDE**
+## Repository Structure
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+├── public/ # Public assets (images, SVGs, etc.)
+├── src/ # Source files (components, pages)
+├── package.json # Project metadata and dependencies
+├── tailwind.config.ts # Tailwind CSS configuration
+├── tsconfig.json # TypeScript configuration
+├── vite.config.ts # Vite build setup
+└── README.md # This file
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-Follow these steps:
+## Contributors
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+This project is developed by the SproutSpace team for the University of Hawaiʻi at Mānoa – ICS 314 Summer 2025 course.  
+Special thanks to all team members contributing design mockups, frontend logic, and deployment strategy.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Notes
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/bda237b9-4644-4606-9345-57a9410fec95) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- This is a non-production academic project.
+- Some page mockups are placeholders for Milestone 1.
+- Code contributions and screenshot mockups are managed collaboratively.
