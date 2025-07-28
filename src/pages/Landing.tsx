@@ -1,4 +1,4 @@
-
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,15 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const Landing = () => {
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("profileName");
+    if (storedName) {
+      setProfileName(storedName);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -45,17 +54,28 @@ const Landing = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link to="/signup">
-                <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-lg px-8 py-4">
-                  Start Gardening Smarter
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/demo">
-                <Button variant="outline" size="lg" className="text-lg px-8 py-4 border-green-200 hover:bg-green-50">
-                  Watch Demo
-                </Button>
-              </Link>
+              {profileName ? (
+                <Link to="/profile">
+                  <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-lg px-8 py-4">
+                    Welcome, {profileName}
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/signup">
+                    <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-lg px-8 py-4">
+                      Start Gardening Smarter
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Link to="/demo">
+                    <Button variant="outline" size="lg" className="text-lg px-8 py-4 border-green-200 hover:bg-green-50">
+                      Watch Demo
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Stats */}
@@ -255,17 +275,27 @@ const Landing = () => {
             Join thousands of gardeners who are already growing healthier plants with AI-powered insights.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/signup">
-              <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-4">
-                Start Free Trial
-                <Zap className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link to="/contact">
-              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10 text-lg px-8 py-4">
-                Contact Sales
-              </Button>
-            </Link>
+            {profileName ? (
+              <Link to="/profile">
+                <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-4">
+                  Go to Profile ({profileName})
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/signup">
+                  <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-4">
+                    Start Free Trial
+                    <Zap className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link to="/contact">
+                  <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10 text-lg px-8 py-4">
+                    Contact Sales
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

@@ -1,25 +1,42 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Camera, 
-  TrendingUp, 
-  Trophy, 
-  Users, 
+import {
+  Camera,
+  TrendingUp,
+  Trophy,
+  Users,
   Calendar,
   Bell,
   Plus,
   Leaf,
   AlertTriangle,
   CheckCircle,
-  Clock
 } from "lucide-react";
 import Header from "@/components/Header";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Dashboard = () => {
+  const location = useLocation();
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("profileName");
+    if (storedName) {
+      setProfileName(storedName);
+    } else {
+      setProfileName(null);
+    }
+  }, [location]);
+
   const recentScans = [
     { id: 1, plant: "Tomato Plant", date: "2 hours ago", status: "healthy", confidence: 94 },
     { id: 2, plant: "Rose Bush", date: "1 day ago", status: "needs-attention", confidence: 87 },
@@ -35,11 +52,25 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, John!</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back,{" "}
+            {profileName ? (
+              <Link
+                to="/profile"
+                className="text-green-600 hover:underline cursor-pointer"
+                title="Edit your profile"
+              >
+                {profileName}
+              </Link>
+            ) : (
+              "Gardener"
+            )}
+            !
+          </h1>
           <p className="text-gray-600">Here's what's happening in your garden today.</p>
         </div>
 
@@ -121,15 +152,21 @@ const Dashboard = () => {
               <CardContent>
                 <div className="space-y-4">
                   {recentScans.map((scan) => (
-                    <div key={scan.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg">
+                    <div
+                      key={scan.id}
+                      className="flex items-center justify-between p-4 border border-gray-100 rounded-lg"
+                    >
                       <div className="flex items-center space-x-4">
-                        <div className={`p-2 rounded-lg ${
-                          scan.status === 'healthy' ? 'bg-green-100' : 'bg-yellow-100'
-                        }`}>
-                          {scan.status === 'healthy' ? 
-                            <CheckCircle className="h-5 w-5 text-green-600" /> :
+                        <div
+                          className={`p-2 rounded-lg ${
+                            scan.status === "healthy" ? "bg-green-100" : "bg-yellow-100"
+                          }`}
+                        >
+                          {scan.status === "healthy" ? (
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          ) : (
                             <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                          }
+                          )}
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{scan.plant}</p>
@@ -137,9 +174,14 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <Badge variant={scan.status === 'healthy' ? 'default' : 'secondary'} className={
-                          scan.status === 'healthy' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }>
+                        <Badge
+                          variant={scan.status === "healthy" ? "default" : "secondary"}
+                          className={
+                            scan.status === "healthy"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }
+                        >
                           {scan.confidence}% confident
                         </Badge>
                       </div>
@@ -164,14 +206,23 @@ const Dashboard = () => {
                     Scan Plant
                   </Button>
                 </Link>
+
                 <Button variant="outline" className="w-full justify-start">
                   <Calendar className="h-4 w-4 mr-2" />
                   View Calendar
                 </Button>
+
                 <Button variant="outline" className="w-full justify-start">
                   <Users className="h-4 w-4 mr-2" />
                   Community
                 </Button>
+
+                <Link to="/profile">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Bell className="h-4 w-4 mr-2" />
+                    Go to Profile
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
@@ -185,17 +236,23 @@ const Dashboard = () => {
                 <div className="space-y-4">
                   {achievements.map((achievement, index) => (
                     <div key={index} className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${
-                        achievement.unlocked ? 'bg-yellow-100' : 'bg-gray-100'
-                      }`}>
-                        <Trophy className={`h-4 w-4 ${
-                          achievement.unlocked ? 'text-yellow-600' : 'text-gray-400'
-                        }`} />
+                      <div
+                        className={`p-2 rounded-lg ${
+                          achievement.unlocked ? "bg-yellow-100" : "bg-gray-100"
+                        }`}
+                      >
+                        <Trophy
+                          className={`h-4 w-4 ${
+                            achievement.unlocked ? "text-yellow-600" : "text-gray-400"
+                          }`}
+                        />
                       </div>
                       <div className="flex-1">
-                        <p className={`text-sm font-medium ${
-                          achievement.unlocked ? 'text-gray-900' : 'text-gray-500'
-                        }`}>
+                        <p
+                          className={`text-sm font-medium ${
+                            achievement.unlocked ? "text-gray-900" : "text-gray-500"
+                          }`}
+                        >
                           {achievement.name}
                         </p>
                         <p className="text-xs text-gray-500">{achievement.description}</p>
