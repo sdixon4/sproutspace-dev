@@ -1,28 +1,52 @@
-
-import { useState } from "react";
+import '@tensorflow/tfjs';
+import React, { useState, useEffect } from "react";
+import * as tf from "@tensorflow/tfjs";  // <-- Added TensorFlow import
+import * as mobilenet from "@tensorflow-models/mobilenet";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Camera, 
-  Upload, 
-  Zap, 
-  CheckCircle, 
-  AlertTriangle, 
+import {
+  Camera,
+  Zap,
   Info,
   ArrowLeft,
   Smartphone,
-  Wifi
+  Wifi,
 } from "lucide-react";
 import Header from "@/components/Header";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import Fuse from "fuse.js";
+import { plantsDatabase } from "../data/plantsData";
 
 const PlantScan = () => {
-  const [scanStep, setScanStep] = useState<'upload' | 'analyzing' | 'results'>('upload');
+  const [scanStep, setScanStep] = useState<"upload" | "analyzing" | "results">("upload");
   const [progress, setProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [model, setModel] = useState<mobilenet.MobileNet | null>(null);
+  const [scanResults, setScanResults] = useState<any>(null);
+
+  const navigate = useNavigate();
+
+  // Load mobilenet model once on mount, with error logging
+  useEffect(() => {
+    mobilenet
+      .load()
+      .then((loadedModel) => {
+        setModel(loadedModel);
+        console.log("MobileNet model loaded");
+      })
+      .catch((error) => {
+        console.error("Failed to load ML model:", error);
+        toast.error("Failed to load ML model.");
+      });
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -32,52 +56,107 @@ const PlantScan = () => {
     }
   };
 
+  // Fuse.js setup for fuzzy searching plant names and aliases
+  const fuse = new Fuse(plantsDatabase, {
+    keys: ["name", "aliases"],
+    threshold: 0.4,
+  });
+
+  const analyzeImage = async (imageElement: HTMLImageElement) => {
+    if (!model) {
+      toast.error("Model is not loaded yet.");
+      setScanStep("upload");
+      return;
+    }
+    try {
+      console.log("Starting image classification...");
+      const predictions = await model.classify(imageElement);
+      console.log("Predictions:", predictions);
+
+      if (predictions.length === 0) {
+        toast.error("No objects recognized in the image.");
+        setScanStep("upload");
+        return;
+      }
+
+      const topLabel = predictions[0].className.toLowerCase();
+
+      const results = fuse.search(topLabel);
+
+      if (results.length === 0) {
+        toast.error("Plant not recognized. Try a different photo.");
+        setScanStep("upload");
+        return;
+      }
+
+      const matchedPlant = results[0].item;
+
+      setScanResults({
+        plant: matchedPlant,
+        confidence: Math.round(predictions[0].probability * 100),
+        predictionLabel: predictions[0].className,
+      });
+
+      setScanStep("results");
+    } catch (error) {
+      console.error("Error during image analysis:", error);
+      toast.error("Error analyzing image.");
+      setScanStep("upload");
+    }
+  };
+
   const handleScan = () => {
+    console.log("Analyze Plant clicked");
+
     if (!selectedFile) {
+      console.log("No file selected");
       toast.error("Please select an image first!");
       return;
     }
+    if (!model) {
+      console.log("Model not loaded yet");
+      toast.error("Model is not loaded yet.");
+      return;
+    }
 
-    setScanStep('analyzing');
+    setScanStep("analyzing");
     setProgress(0);
 
-    // Simulate AI analysis
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setScanStep('results');
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
-  };
+    const imageURL = URL.createObjectURL(selectedFile);
+    const img = new Image();
 
-  const scanResults = {
-    plantType: "Tomato Plant (Solanum lycopersicum)",
-    healthStatus: "Nutrient Deficiency Detected",
-    confidence: 87,
-    issues: [
-      {
-        type: "Nitrogen Deficiency",
-        severity: "Moderate",
-        description: "Yellowing of lower leaves indicates nitrogen deficiency",
-        confidence: 89
-      }
-    ],
-    recommendations: [
-      "Apply nitrogen-rich fertilizer (10-5-5 NPK ratio)",
-      "Water deeply but less frequently",
-      "Monitor leaf color changes over next 7-10 days",
-      "Consider soil pH testing"
-    ]
+    img.onload = () => {
+      console.log("Image loaded successfully, starting progress");
+      let progressVal = 0;
+
+      const interval = setInterval(() => {
+        progressVal += 10;
+        console.log("Progress:", progressVal);
+        setProgress(progressVal);
+
+        if (progressVal >= 100) {
+          clearInterval(interval);
+          console.log("Progress complete, analyzing image now");
+          setTimeout(() => analyzeImage(img), 100);
+          URL.revokeObjectURL(imageURL);
+        }
+      }, 200);
+    };
+
+    img.onerror = (error) => {
+      console.error("Image failed to load", error);
+      toast.error("Failed to load image.");
+      setScanStep("upload");
+      URL.revokeObjectURL(imageURL);
+    };
+
+    img.src = imageURL;
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center mb-8">
@@ -93,7 +172,7 @@ const PlantScan = () => {
           </div>
         </div>
 
-        {scanStep === 'upload' && (
+        {scanStep === "upload" && (
           <div className="max-w-2xl mx-auto">
             <Card>
               <CardHeader className="text-center">
@@ -103,8 +182,11 @@ const PlantScan = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Upload Area */}
-                <div className="border-2 border-dashed border-green-300 rounded-lg p-8 text-center hover:border-green-400 transition-colors">
+                {/* Upload area label (clickable) */}
+                <label
+                  htmlFor="file-upload"
+                  className="block cursor-pointer border-2 border-dashed border-green-300 rounded-lg p-8 text-center hover:border-green-400 transition-colors"
+                >
                   <div className="space-y-4">
                     <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
                       <Camera className="h-8 w-8 text-green-600" />
@@ -112,31 +194,24 @@ const PlantScan = () => {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Upload Your Plant Photo</h3>
                       <p className="text-gray-600 mb-4">
-                        Drag and drop your image here, or click to browse
+                        Drag and drop your image here, or click anywhere to browse
                       </p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                        id="file-upload"
-                      />
-                      <label htmlFor="file-upload">
-                        <Button variant="outline" className="cursor-pointer">
-                          <Upload className="h-4 w-4 mr-2" />
-                          Choose File
-                        </Button>
-                      </label>
                     </div>
                     {selectedFile && (
                       <div className="bg-green-50 p-3 rounded-lg">
-                        <p className="text-sm text-green-800">
-                          Selected: {selectedFile.name}
-                        </p>
+                        <p className="text-sm text-green-800">Selected: {selectedFile.name}</p>
                       </div>
                     )}
                   </div>
-                </div>
+                </label>
+
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
 
                 {/* Tips */}
                 <div className="bg-blue-50 p-4 rounded-lg">
@@ -154,9 +229,8 @@ const PlantScan = () => {
 
                 {/* Action Buttons */}
                 <div className="flex space-x-4">
-                  <Button 
+                  <Button
                     onClick={handleScan}
-                    disabled={!selectedFile}
                     className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                   >
                     <Zap className="h-4 w-4 mr-2" />
@@ -181,8 +255,8 @@ const PlantScan = () => {
                   <p className="text-sm text-gray-600 mb-4">
                     Use your smartphone camera for instant scanning
                   </p>
-                  <Button variant="outline" className="w-full">
-                    Open Camera
+                  <Button variant="outline" className="w-full" disabled>
+                    Open Camera (Coming Soon)
                   </Button>
                 </CardContent>
               </Card>
@@ -196,8 +270,8 @@ const PlantScan = () => {
                   <p className="text-sm text-gray-600 mb-4">
                     Connect Bluetooth sensors for advanced analysis
                   </p>
-                  <Button variant="outline" className="w-full">
-                    Pair Device
+                  <Button variant="outline" className="w-full" disabled>
+                    Pair Device (Coming Soon)
                   </Button>
                 </CardContent>
               </Card>
@@ -205,7 +279,7 @@ const PlantScan = () => {
           </div>
         )}
 
-        {scanStep === 'analyzing' && (
+        {scanStep === "analyzing" && (
           <div className="max-w-md mx-auto">
             <Card>
               <CardContent className="p-8 text-center">
@@ -223,123 +297,59 @@ const PlantScan = () => {
           </div>
         )}
 
-        {scanStep === 'results' && (
+        {scanStep === "results" && scanResults && (
           <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main Results */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Plant Identification */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Plant Identification</CardTitle>
-                      <Badge className="bg-green-100 text-green-800">
-                        {scanResults.confidence}% Confident
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-lg font-medium text-gray-900 mb-4">
-                      {scanResults.plantType}
-                    </p>
-                    <div className="flex items-center space-x-2">
-                      <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                      <span className="font-medium text-yellow-700">{scanResults.healthStatus}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Detected Issues */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Detected Issues</CardTitle>
-                    <CardDescription>Problems identified by our AI analysis</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {scanResults.issues.map((issue, index) => (
-                      <div key={index} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-semibold text-yellow-900">{issue.type}</h4>
-                          <div className="flex space-x-2">
-                            <Badge variant="outline" className="border-yellow-300 text-yellow-700">
-                              {issue.severity}
-                            </Badge>
-                            <Badge className="bg-yellow-100 text-yellow-800">
-                              {issue.confidence}% confident
-                            </Badge>
-                          </div>
-                        </div>
-                        <p className="text-yellow-800">{issue.description}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Recommendations */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Treatment Recommendations</CardTitle>
-                    <CardDescription>Actionable steps to improve plant health</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {scanResults.recommendations.map((rec, index) => (
-                        <div key={index} className="flex items-start space-x-3">
-                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                          <p className="text-gray-700">{rec}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Sidebar */}
-              <div className="space-y-6">
-                {/* Quick Actions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button className="w-full" variant="outline">
-                      Save to Garden
-                    </Button>
-                    <Button className="w-full" variant="outline">
-                      Set Reminders
-                    </Button>
-                    <Button className="w-full" variant="outline">
-                      Share Results
-                    </Button>
-                    <Button 
-                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600"
-                      onClick={() => setScanStep('upload')}
-                    >
-                      Scan Another Plant
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Scan History */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Related Scans</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="text-sm">
-                        <p className="font-medium">Tomato Plant #1</p>
-                        <p className="text-gray-500">3 days ago - Healthy</p>
-                      </div>
-                      <div className="text-sm">
-                        <p className="font-medium">Tomato Plant #2</p>
-                        <p className="text-gray-500">1 week ago - Pest detected</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+            <Card>
+              <CardContent>
+                <h2 className="text-2xl font-bold mb-4">Plant Recognized</h2>
+                <p className="text-lg mb-2">
+                  <strong>Name:</strong> {scanResults.plant.name}
+                </p>
+                <p className="mb-4 italic text-gray-600">
+                  (Model Prediction: {scanResults.predictionLabel}, Confidence: {scanResults.confidence}%)
+                </p>
+                <img
+                  src={scanResults.plant.image}
+                  alt={scanResults.plant.name}
+                  className="max-w-md rounded-lg mb-6 shadow-lg"
+                />
+                <p className="mb-4">{scanResults.plant.description}</p>
+                <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                  <h3 className="text-xl font-semibold mb-3">Care Instructions</h3>
+                  <ul className="list-disc list-inside space-y-2 text-gray-700">
+                    <li>
+                      <strong>Light:</strong> {scanResults.plant.care.light}
+                    </li>
+                    <li>
+                      <strong>Water:</strong> {scanResults.plant.care.water}
+                    </li>
+                    <li>
+                      <strong>Soil:</strong> {scanResults.plant.care.soil}
+                    </li>
+                  </ul>
+                </div>
+                <div className="flex space-x-4">
+                  <Button
+                    onClick={() => {
+                      setScanStep("upload");
+                      setSelectedFile(null);
+                      setScanResults(null);
+                    }}
+                  >
+                    Scan Another Plant
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      navigate("/plantdetails", {
+                        state: { plantId: scanResults.plant.id },
+                      })
+                    }
+                  >
+                    View Full Details
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
