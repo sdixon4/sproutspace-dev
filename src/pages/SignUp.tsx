@@ -28,8 +28,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { auth, db } from "@/firebaseConfig";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+
 const SignUp = () => {
-  const navigate = useNavigate(); // <-- added
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -57,11 +61,32 @@ const SignUp = () => {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Create Firebase user
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      // Store additional user data in Firestore
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        location: formData.location,
+        experience: formData.experience,
+      });
+
       toast.success("Welcome to SproutSpace! Your gardening journey begins now.");
-      navigate("/profile"); // <-- redirect to Profile after successful sign-up
-    }, 1000);
+
+      // Redirect to dashboard
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create account");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -281,3 +306,4 @@ const SignUp = () => {
 };
 
 export default SignUp;
+
