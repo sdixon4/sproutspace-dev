@@ -24,9 +24,25 @@ import {
 import Header from "@/components/Header";
 import { Link, useLocation } from "react-router-dom";
 
+// Helper to format dates nicely
+const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+};
+
+// Helper to get just the yyyy-mm-dd part for grouping
+const getDateKey = (dateStr: string) => {
+  const d = new Date(dateStr);
+  return d.toISOString().split("T")[0]; // e.g. "2025-08-09"
+};
+
 const Dashboard = () => {
   const location = useLocation();
   const [profileName, setProfileName] = useState<string | null>(null);
+
+  // For calendar toggle and selected date scans
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
     const storedName = localStorage.getItem("profileName");
@@ -37,10 +53,11 @@ const Dashboard = () => {
     }
   }, [location]);
 
+  // Example recent scans with full date strings (ISO or JS date string)
   const recentScans = [
-    { id: 1, plant: "Tomato Plant", date: "2 hours ago", status: "healthy", confidence: 94 },
-    { id: 2, plant: "Rose Bush", date: "1 day ago", status: "needs-attention", confidence: 87 },
-    { id: 3, plant: "Basil", date: "3 days ago", status: "healthy", confidence: 91 },
+    { id: 1, plant: "Tomato Plant", date: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), status: "healthy", confidence: 94 }, // 2 hours ago
+    { id: 2, plant: "Rose Bush", date: new Date(Date.now() - 24 * 3600 * 1000).toISOString(), status: "needs-attention", confidence: 87 }, // 1 day ago
+    { id: 3, plant: "Basil", date: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(), status: "healthy", confidence: 91 }, // 3 days ago
   ];
 
   const achievements = [
@@ -48,6 +65,17 @@ const Dashboard = () => {
     { name: "Green Thumb", description: "Maintained 5 healthy plants", unlocked: true },
     { name: "Master Diagnostician", description: "Performed 50 plant scans", unlocked: false },
   ];
+
+  // Group scans by dateKey for calendar display
+  const scansByDate: Record<string, typeof recentScans> = recentScans.reduce((acc, scan) => {
+    const key = getDateKey(scan.date);
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(scan);
+    return acc;
+  }, {} as Record<string, typeof recentScans>);
+
+  // Unique dates for calendar list
+  const uniqueDates = Object.keys(scansByDate).sort((a, b) => (a > b ? -1 : 1));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -170,7 +198,7 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{scan.plant}</p>
-                          <p className="text-sm text-gray-500">{scan.date}</p>
+                          <p className="text-sm text-gray-500">{formatDate(scan.date)}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -207,7 +235,14 @@ const Dashboard = () => {
                   </Button>
                 </Link>
 
-                <Button variant="outline" className="w-full justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setShowCalendar(!showCalendar);
+                    setSelectedDate(null);
+                  }}
+                >
                   <Calendar className="h-4 w-4 mr-2" />
                   View Calendar
                 </Button>
@@ -235,29 +270,31 @@ const Dashboard = () => {
               <CardContent>
                 <div className="space-y-4">
                   {achievements.map((achievement, index) => (
-                    <div key={index} className="flex items-center space-x-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          achievement.unlocked ? "bg-yellow-100" : "bg-gray-100"
-                        }`}
-                      >
-                        <Trophy
-                          className={`h-4 w-4 ${
-                            achievement.unlocked ? "text-yellow-600" : "text-gray-400"
-                          }`}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <p
-                          className={`text-sm font-medium ${
-                            achievement.unlocked ? "text-gray-900" : "text-gray-500"
+                    <React.Fragment key={index}>
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`p-2 rounded-lg ${
+                            achievement.unlocked ? "bg-yellow-100" : "bg-gray-100"
                           }`}
                         >
-                          {achievement.name}
-                        </p>
-                        <p className="text-xs text-gray-500">{achievement.description}</p>
+                          <Trophy
+                            className={`h-4 w-4 ${
+                              achievement.unlocked ? "text-yellow-600" : "text-gray-400"
+                            }`}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p
+                            className={`text-sm font-medium ${
+                              achievement.unlocked ? "text-gray-900" : "text-gray-500"
+                            }`}
+                          >
+                            {achievement.name}
+                          </p>
+                          <p className="text-xs text-gray-500">{achievement.description}</p>
+                        </div>
                       </div>
-                    </div>
+                    </React.Fragment>
                   ))}
                 </div>
               </CardContent>
@@ -289,6 +326,67 @@ const Dashboard = () => {
             </Card>
           </div>
         </div>
+
+        {/* Calendar Modal / Section */}
+        {showCalendar && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">Scan Calendar</h3>
+                <button
+                  onClick={() => {
+                    setShowCalendar(false);
+                    setSelectedDate(null);
+                  }}
+                  className="text-gray-600 hover:text-gray-900 font-bold"
+                  aria-label="Close calendar"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Date list */}
+              <ul className="divide-y divide-gray-200 max-h-64 overflow-auto">
+                {uniqueDates.length === 0 && (
+                  <li className="py-2 text-center text-gray-500">No scans available</li>
+                )}
+                {uniqueDates.map((dateKey) => (
+                  <li
+                    key={dateKey}
+                    className={`cursor-pointer py-2 px-4 rounded ${
+                      selectedDate === dateKey ? "bg-green-100 font-semibold" : "hover:bg-green-50"
+                    }`}
+                    onClick={() => setSelectedDate(dateKey)}
+                  >
+                    {new Date(dateKey).toLocaleDateString(undefined, {
+                      weekday: "short",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Show scans for selected date */}
+              {selectedDate && (
+                <div className="mt-4 border-t pt-4">
+                  <h4 className="font-semibold mb-2">Scans on {new Date(selectedDate).toLocaleDateString()}</h4>
+                  <ul>
+                    {scansByDate[selectedDate]?.map((scan) => (
+                      <li key={scan.id} className="mb-2">
+                        <p className="font-medium">{scan.plant}</p>
+                        <p className="text-sm text-gray-600">
+                          Confidence: {scan.confidence}%, Status: {scan.status}
+                        </p>
+                      </li>
+                    )) || <p>No scans on this date.</p>}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
